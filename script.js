@@ -4,28 +4,39 @@ const cityInput = document.getElementById("cityInput");
 const cityName = document.getElementById("cityName");
 const temperature = document.getElementById("temperature");
 const description = document.getElementById("description");
+const message = document.getElementById("message");
 
-searchBtn.addEventListener("click", async function () {
+searchBtn.addEventListener("click", getWeather);
+cityInput.addEventListener("keypress", function (event) {
+  if (event.key === "Enter") {
+    getWeather();
+  }
+});
+
+async function getWeather() {
   const city = cityInput.value.trim();
 
   if (!city) {
-    cityName.textContent = "Please enter a city.";
+    message.textContent = "Please enter a city.";
+    cityName.textContent = "";
     temperature.textContent = "";
     description.textContent = "";
     return;
   }
 
+  message.textContent = "Loading weather...";
+  cityName.textContent = "";
+  temperature.textContent = "";
+  description.textContent = "";
+
   try {
-    // 1. Get city coordinates from Open-Meteo Geocoding API
     const geoResponse = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
     );
     const geoData = await geoResponse.json();
 
     if (!geoData.results || geoData.results.length === 0) {
-      cityName.textContent = "City not found.";
-      temperature.textContent = "";
-      description.textContent = "";
+      message.textContent = "City not found.";
       return;
     }
 
@@ -33,7 +44,6 @@ searchBtn.addEventListener("click", async function () {
     const lat = location.latitude;
     const lon = location.longitude;
 
-    // 2. Get current weather from Open-Meteo Forecast API
     const weatherResponse = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`
     );
@@ -42,22 +52,19 @@ searchBtn.addEventListener("click", async function () {
     const currentTemp = weatherData.current.temperature_2m;
     const weatherCode = weatherData.current.weather_code;
 
-    // 3. Convert weather code into readable text
-    const weatherText = getWeatherDescription(weatherCode);
-
-    // 4. Display on page
     cityName.textContent = `${location.name}, ${location.country}`;
     temperature.textContent = `Temperature: ${currentTemp}°F`;
-    description.textContent = `Condition: ${weatherText}`;
+    description.textContent = `Condition: ${getWeatherDescription(weatherCode)}`;
+    message.textContent = "";
   } catch (error) {
-    cityName.textContent = "Something went wrong.";
+    message.textContent = "Something went wrong. Please try again.";
+    cityName.textContent = "";
     temperature.textContent = "";
     description.textContent = "";
     console.error(error);
   }
-});
+}
 
-// Weather code helper
 function getWeatherDescription(code) {
   const weatherCodes = {
     0: "Clear sky",
@@ -65,7 +72,7 @@ function getWeatherDescription(code) {
     2: "Partly cloudy",
     3: "Overcast",
     45: "Fog",
-    48: "Depositing rime fog",
+    48: "Rime fog",
     51: "Light drizzle",
     53: "Moderate drizzle",
     55: "Dense drizzle",
