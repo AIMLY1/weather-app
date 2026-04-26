@@ -1,5 +1,6 @@
 const searchBtn = document.getElementById("searchBtn");
 const cityInput = document.getElementById("cityInput");
+const locationBtn = document.getElementById("locationBtn");
 
 const cityName = document.getElementById("cityName");
 const weatherIcon = document.getElementById("weatherIcon");
@@ -8,7 +9,6 @@ const highLow = document.getElementById("highLow");
 const description = document.getElementById("description");
 const message = document.getElementById("message");
 const forecast = document.getElementById("forecast");
-console.log({ searchBtn, cityInput, cityName, weatherIcon, temperature, highLow, description, message });
 
 searchBtn.addEventListener("click", getWeather);
 
@@ -16,6 +16,27 @@ cityInput.addEventListener("keypress", function (event) {
   if (event.key === "Enter") {
     getWeather();
   }
+});
+
+locationBtn.addEventListener("click", function () {
+  if (!navigator.geolocation) {
+    message.textContent = "Geolocation is not supported by your browser.";
+    return;
+  }
+
+  message.textContent = "Getting your location...";
+
+  navigator.geolocation.getCurrentPosition(
+    async function (position) {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+
+      await getWeatherByCoords(lat, lon, "Your Location");
+    },
+    function () {
+      message.textContent = "Unable to retrieve your location. Please allow location access.";
+    }
+  );
 });
 
 async function getWeather() {
@@ -32,8 +53,9 @@ async function getWeather() {
 
   try {
     const geoResponse = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+      `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`
     );
+
     const geoData = await geoResponse.json();
 
     if (!geoData.results || geoData.results.length === 0) {
@@ -41,12 +63,24 @@ async function getWeather() {
       return;
     }
 
-    const location = geoData.results[0];
-    const lat = location.latitude;
-    const lon = location.longitude;
+    const lat = geoData.results[0].latitude;
+    const lon = geoData.results[0].longitude;
+    const name = geoData.results[0].name;
 
+    await getWeatherByCoords(lat, lon, name);
+  } catch (error) {
+    message.textContent = "Something went wrong. Please try again.";
+    console.error(error);
+  }
+}
+
+async function getWeatherByCoords(lat, lon, displayName) {
+  message.textContent = "Loading weather...";
+  clearWeather();
+
+  try {
     const weatherResponse = await fetch(
-  `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&timezone=auto`
     );
 
     const weatherData = await weatherResponse.json();
@@ -59,7 +93,7 @@ async function getWeather() {
     const weatherText = getWeatherDescription(weatherCode);
     const icon = getWeatherIcon(weatherCode);
 
-    cityName.textContent = `${location.name}, ${location.country}`;
+    cityName.textContent = displayName;
     weatherIcon.textContent = icon;
     temperature.textContent = `Temperature: ${currentTemp}°F`;
     highLow.textContent = `High: ${maxTemp}°F / Low: ${minTemp}°F`;
@@ -67,24 +101,7 @@ async function getWeather() {
     message.textContent = "";
 
     updateBackground(weatherCode);
-    forecast.innerHTML = "<h3>5-Day Forecast</h3>";
-
-  for (let i = 0; i < 5; i++) {
-      const date = weatherData.daily.time[i];
-      const max = weatherData.daily.temperature_2m_max[i];
-      const min = weatherData.daily.temperature_2m_min[i];
-      const code = weatherData.daily.weather_code[i];
-      const icon = getWeatherIcon(code);
-
-  forecast.innerHTML += `
-    <div class="forecast-card">
-      <p>${date}</p>
-      <p>${icon}</p>
-      <p>High: ${max}°F</p>
-      <p>Low: ${min}°F</p>
-    </div>
-  `;
-}
+    showForecast(weatherData);
   } catch (error) {
     message.textContent = "Something went wrong. Please try again.";
     clearWeather();
@@ -92,13 +109,34 @@ async function getWeather() {
   }
 }
 
+function showForecast(weatherData) {
+  forecast.innerHTML = "<h3>5-Day Forecast</h3>";
+
+  for (let i = 0; i < 5; i++) {
+    const date = weatherData.daily.time[i];
+    const max = weatherData.daily.temperature_2m_max[i];
+    const min = weatherData.daily.temperature_2m_min[i];
+    const code = weatherData.daily.weather_code[i];
+    const icon = getWeatherIcon(code);
+
+    forecast.innerHTML += `
+      <div class="forecast-card">
+        <p>${date}</p>
+        <p>${icon}</p>
+        <p>High: ${max}°F</p>
+        <p>Low: ${min}°F</p>
+      </div>
+    `;
+  }
+}
+
 function clearWeather() {
-  if (cityName) cityName.textContent = "";
-  if (weatherIcon) weatherIcon.textContent = "";
-  if (temperature) temperature.textContent = "";
-  if (highLow) highLow.textContent = "";
-  if (description) description.textContent = "";
-  if (forecast) forecast.innerHTML = "";
+  cityName.textContent = "";
+  weatherIcon.textContent = "";
+  temperature.textContent = "";
+  highLow.textContent = "";
+  description.textContent = "";
+  forecast.innerHTML = "";
 }
 
 function getWeatherDescription(code) {
