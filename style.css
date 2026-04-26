@@ -1,15 +1,16 @@
 body {
   font-family: Arial, sans-serif;
-  background-color: #f0f8ff;
+  background: transparent;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   margin: 0;
-  transition: background 0.4s ease;
 }
 
 .weather-app {
+  position: relative;
+  z-index: 1;
   background: white;
   padding: 30px;
   border-radius: 14px;
@@ -69,13 +70,167 @@ button:hover {
 }
 
 .forecast-card {
-  background: #f5f5f5;
-  padding: 10px;
-  margin: 8px 0;
-  border-radius: 8px;
-  box-shadow: 0px 2px 6px rgba(0,0,0,0.08);
+  background: #1e293b;
+  color: white;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.25);
+
+  opacity: 0;
+  animation: fadeIn 0.6s ease forwards;
+
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .forecast-card p {
   margin: 4px 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.forecast-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0px 6px 20px rgba(0, 132, 255, 0.4);
+}
+
+.loader {
+  display: none;
+  margin: 20px auto;
+  width: 35px;
+  height: 35px;
+  border: 5px solid #333;
+  border-top: 5px solid #0d6efd;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#bg-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  background-size: 800% 800%;
+}
+
+.sunny {
+  background: linear-gradient(270deg, red, blue, yellow, green);
+  animation: moveBg 2s ease infinite;
+}
+
+@keyframes moveBg {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.cloudy {
+  background: linear-gradient(270deg, #334155, #64748b, #94a3b8, #cbd5e1);
+  animation: moveBg 3s ease infinite;
+}
+
+.rain {
+  background: linear-gradient(270deg, #0f172a, #1e293b, #334155, #020617);
+  animation: moveBg 3s ease infinite;
+}
+
+@keyframes moveBg {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+#rain-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.raindrop {
+  position: absolute;
+  width: 2px;
+  height: 18px;
+  background: rgba(255,255,255,0.6);
+  animation: fall linear infinite;
+}
+
+@keyframes fall {
+  from {
+    transform: translateY(-100px);
+  }
+
+  to {
+    transform: translateY(100vh);
+  }
+}
+
+.lightning {
+  animation: moveBg 3s ease infinite, flash 2s infinite;
+}
+
+@keyframes flash {
+  0%, 92%, 100% {
+    filter: brightness(1);
+  }
+
+  94% {
+    filter: brightness(2.5);
+  }
+
+  96% {
+    filter: brightness(1);
+  }
+
+  98% {
+    filter: brightness(2);
+  }
+}
+
+.night {
+  background: linear-gradient(270deg, #020617, #0f172a, #1e293b, #020617);
+  background-size: 800% 800%;
+  animation: moveBg 6s ease infinite;
 }

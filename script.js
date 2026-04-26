@@ -9,13 +9,12 @@ const highLow = document.getElementById("highLow");
 const description = document.getElementById("description");
 const message = document.getElementById("message");
 const forecast = document.getElementById("forecast");
+const loader = document.getElementById("loader");
 
 searchBtn.addEventListener("click", getWeather);
 
 cityInput.addEventListener("keypress", function (event) {
-  if (event.key === "Enter") {
-    getWeather();
-  }
+  if (event.key === "Enter") getWeather();
 });
 
 locationBtn.addEventListener("click", function () {
@@ -25,16 +24,19 @@ locationBtn.addEventListener("click", function () {
   }
 
   message.textContent = "Getting your location...";
+  loader.style.display = "block";
+  clearWeather();
 
   navigator.geolocation.getCurrentPosition(
     async function (position) {
       const lat = position.coords.latitude;
       const lon = position.coords.longitude;
-
       await getWeatherByCoords(lat, lon, "Your Location");
     },
     function () {
-      message.textContent = "Unable to retrieve your location. Please allow location access.";
+      message.textContent =
+        "Unable to retrieve your location. Please allow location access.";
+      loader.style.display = "none";
     }
   );
 });
@@ -48,7 +50,8 @@ async function getWeather() {
     return;
   }
 
-  message.textContent = "Loading weather...";
+  message.textContent = "";
+  loader.style.display = "block";
   clearWeather();
 
   try {
@@ -60,16 +63,19 @@ async function getWeather() {
 
     if (!geoData.results || geoData.results.length === 0) {
       message.textContent = "City not found.";
+      loader.style.display = "none";
       return;
     }
 
     const lat = geoData.results[0].latitude;
     const lon = geoData.results[0].longitude;
     const name = geoData.results[0].name;
+    const country = geoData.results[0].country;
 
-    await getWeatherByCoords(lat, lon, name);
+    await getWeatherByCoords(lat, lon, `${name}, ${country}`);
   } catch (error) {
     message.textContent = "Something went wrong. Please try again.";
+    loader.style.display = "none";
     console.error(error);
   }
 }
@@ -80,13 +86,17 @@ async function getWeatherByCoords(lat, lon, displayName) {
 
   try {
     const weatherResponse = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&timezone=auto`
     );
 
     const weatherData = await weatherResponse.json();
 
     const currentTemp = weatherData.current.temperature_2m;
+    const feelsLike = weatherData.current.apparent_temperature;
     const weatherCode = weatherData.current.weather_code;
+
+    updateBackground(weatherCode);
+
     const maxTemp = weatherData.daily.temperature_2m_max[0];
     const minTemp = weatherData.daily.temperature_2m_min[0];
 
@@ -95,18 +105,79 @@ async function getWeatherByCoords(lat, lon, displayName) {
 
     cityName.textContent = displayName;
     weatherIcon.textContent = icon;
-    temperature.textContent = `Temperature: ${currentTemp}°F`;
+    temperature.textContent = `Temp: ${currentTemp}°F (Feels like ${feelsLike}°F)`;
     highLow.textContent = `High: ${maxTemp}°F / Low: ${minTemp}°F`;
     description.textContent = `Condition: ${weatherText}`;
     message.textContent = "";
+    loader.style.display = "none";
 
-    updateBackground(weatherCode);
     showForecast(weatherData);
   } catch (error) {
     message.textContent = "Something went wrong. Please try again.";
     clearWeather();
+    loader.style.display = "none";
     console.error(error);
   }
+}
+
+function updateBackground(code) {
+  const bg = document.getElementById("bg-animation");
+  const rainContainer = document.getElementById("rain-container");
+
+  if (!bg) {
+    console.error("bg-animation not found");
+    return;
+  }
+
+  bg.className = "";
+
+  if (rainContainer) rainContainer.innerHTML = "";
+
+  const night = isNight();
+
+  if (code === 0 && !night) {
+    bg.classList.add("sunny");
+  } else if (night && code === 0) {
+    bg.classList.add("night");
+  } else if ([1, 2, 3, 45, 48].includes(code)) {
+    bg.classList.add(night ? "night" : "cloudy");
+  } else if (code === 95) {
+    bg.classList.add("rain", "lightning");
+    createRain();
+  } else if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
+    bg.classList.add("rain");
+    createRain();
+  } else {
+    bg.classList.add(night ? "night" : "cloudy");
+  }
+
+  console.log("Weather code:", code);
+  console.log("Background class:", bg.className);
+}
+
+function createRain() {
+  const container = document.getElementById("rain-container");
+
+  if (!container) {
+    console.error("rain-container not found");
+    return;
+  }
+
+  container.innerHTML = "";
+
+  for (let i = 0; i < 80; i++) {
+    const drop = document.createElement("div");
+    drop.classList.add("raindrop");
+    drop.style.left = Math.random() * 100 + "vw";
+    drop.style.animationDuration = 0.5 + Math.random() + "s";
+    drop.style.animationDelay = Math.random() * 2 + "s";
+    container.appendChild(drop);
+  }
+}
+
+function isNight() {
+  const hour = new Date().getHours();
+  return hour < 7 || hour > 18;
 }
 
 function showForecast(weatherData) {
@@ -119,9 +190,15 @@ function showForecast(weatherData) {
     const code = weatherData.daily.weather_code[i];
     const icon = getWeatherIcon(code);
 
+    const formattedDate = new Date(date).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric"
+    });
+
     forecast.innerHTML += `
-      <div class="forecast-card">
-        <p>${date}</p>
+      <div class="forecast-card" style="animation-delay: ${i * 0.15}s">
+        <p>${formattedDate}</p>
         <p>${icon}</p>
         <p>High: ${max}°F</p>
         <p>Low: ${min}°F</p>
@@ -176,20 +253,8 @@ function getWeatherIcon(code) {
   return "🌍";
 }
 
-function updateBackground(code) {
-  if (code === 0) {
-    document.body.style.background = "#ffe8a3";
-  } else if (code === 1 || code === 2) {
-    document.body.style.background = "#d6ecff";
-  } else if (code === 3 || code === 45 || code === 48) {
-    document.body.style.background = "#cfd8dc";
-  } else if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
-    document.body.style.background = "#b3d1ff";
-  } else if ([71, 73, 75].includes(code)) {
-    document.body.style.background = "#eef7ff";
-  } else if (code === 95) {
-    document.body.style.background = "#9aa5b1";
-  } else {
-    document.body.style.background = "#f0f8ff";
-  }
-}
+navigator.geolocation.getCurrentPosition(async (position) => {
+  const lat = position.coords.latitude;
+  const lon = position.coords.longitude;
+  await getWeatherByCoords(lat, lon, "Your Location");
+});

@@ -1,31 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather App</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather App</title>
+
+  <link rel="icon" type="image/x-icon" href="./favicon.ico">
+
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="bg-animation"></div>
     <div class="weather-app">
-        <h1>Weather-app</h1>
-        <input type="text" id="cityInput" placeholder="Enter city name">
-        <button id="searchBtn">Search</button>
-        <button id="locationBtn">Use My Location</button>
+    <div id="rain-container"></div>
 
-        <div id="weather-Result">
-            <h2 id="cityName"></h2>
-            <p id="weatherIcon"></p>
-            <p id="temperature"></p>
-            <p id="highLow"></p>
-            <p id="description"></p>
-            <p id="message"></p>
-        
-        <div id="forecast">
-        </div>
-        </div>
+    <h1>Weather App</h1>
+
+    <input type="text" id="cityInput" placeholder="Enter city name">
+
+    <button id="searchBtn">Search</button>
+    <button id="locationBtn">Use My Location</button>
+
+    <div id="loader" class="loader"></div>
+
+    <div id="weatherResult">
+      <h2 id="cityName"></h2>
+      <p id="weatherIcon"></p>
+      <p id="temperature"></p>
+      <p id="highLow"></p>
+      <p id="description"></p>
+      <p id="message"></p>
     </div>
 
-    <script src="script.js"></script>
+    <div id="forecast"></div>
+
+  </div>
+
+  <script src="script.js"></script>
+
 </body>
 </html>
