@@ -7,6 +7,7 @@ const temperature = document.getElementById("temperature");
 const highLow = document.getElementById("highLow");
 const description = document.getElementById("description");
 const message = document.getElementById("message");
+const forecast = document.getElementById("forecast");
 console.log({ searchBtn, cityInput, cityName, weatherIcon, temperature, highLow, description, message });
 
 searchBtn.addEventListener("click", getWeather);
@@ -45,8 +46,9 @@ async function getWeather() {
     const lon = location.longitude;
 
     const weatherResponse = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`
+  `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&timezone=auto`
     );
+
     const weatherData = await weatherResponse.json();
 
     const currentTemp = weatherData.current.temperature_2m;
@@ -65,6 +67,24 @@ async function getWeather() {
     message.textContent = "";
 
     updateBackground(weatherCode);
+    forecast.innerHTML = "<h3>5-Day Forecast</h3>";
+
+  for (let i = 0; i < 5; i++) {
+      const date = weatherData.daily.time[i];
+      const max = weatherData.daily.temperature_2m_max[i];
+      const min = weatherData.daily.temperature_2m_min[i];
+      const code = weatherData.daily.weather_code[i];
+      const icon = getWeatherIcon(code);
+
+  forecast.innerHTML += `
+    <div class="forecast-card">
+      <p>${date}</p>
+      <p>${icon}</p>
+      <p>High: ${max}°F</p>
+      <p>Low: ${min}°F</p>
+    </div>
+  `;
+}
   } catch (error) {
     message.textContent = "Something went wrong. Please try again.";
     clearWeather();
@@ -78,6 +98,7 @@ function clearWeather() {
   if (temperature) temperature.textContent = "";
   if (highLow) highLow.textContent = "";
   if (description) description.textContent = "";
+  if (forecast) forecast.innerHTML = "";
 }
 
 function getWeatherDescription(code) {
